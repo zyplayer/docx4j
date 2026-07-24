@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright © 2026, Oracle and/or its affiliates, 
-     and Contributed under the terms and conditions of Apache License 
+<!-- Copyright © 2026, Oracle and/or its affiliates,
+     and Contributed under the terms and conditions of Apache License
      Version 2.0 (the "License"), without any additional terms or conditions.
- 
+
      The contributor licenses this file to You under the License;
      you may not use this file except in compliance with
-     the License. 
- 
-     Unless required by applicable law or agreed to in writing, software 
-     distributed under the License is distributed on an "AS IS" BASIS, 
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-     See the License for the specific language governing permissions and 
+     the License.
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
      limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -30,6 +30,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<modify.generated.sources.executable>${project.basedir}/modify-generated-sources.sh</modify.generated.sources.executable>
+		<modify.generated.sources.argument></modify.generated.sources.argument>
 	</properties>
 
 	<dependencies>
@@ -110,7 +112,10 @@
 							<goal>exec</goal>
 						</goals>
 						<configuration>
-							<executable>${project.basedir}/modify-generated-sources.sh</executable>
+							<executable>${modify.generated.sources.executable}</executable>
+							<arguments>
+								<argument>${modify.generated.sources.argument}</argument>
+							</arguments>
 						</configuration>
 					</execution>
 <!--					<execution>-->
@@ -183,5 +188,20 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>windows-bash-generated-sources</id>
+			<activation>
+				<os>
+					<family>Windows</family>
+				</os>
+			</activation>
+			<properties>
+				<modify.generated.sources.executable>D:/install/Git/bin/bash.exe</modify.generated.sources.executable>
+				<modify.generated.sources.argument>./modify-generated-sources.sh</modify.generated.sources.argument>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>
