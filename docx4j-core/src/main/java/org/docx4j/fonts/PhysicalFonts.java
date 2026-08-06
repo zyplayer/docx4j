@@ -194,25 +194,35 @@ public class PhysicalFonts {
         
         if (regex==null) {
             for (Iterator iter = fontFileList.iterator(); iter.hasNext();) {
-            	
-            	URI fontUrl = getURI(iter.next());
-                
-                // parse font to ascertain font info
-            	addPhysicalFont( fontUrl);
+
+            	Object fontFile = iter.next();
+            	try {
+                	URI fontUrl = getURI(fontFile);
+
+                    // parse font to ascertain font info
+                	addPhysicalFont( fontUrl);
+            	} catch (Throwable t) {
+            		logDiscoveryFailure(fontFile, t);
+            	}
             }
         } else {
         	Pattern pattern = Pattern.compile(regex);
             for (Iterator iter = fontFileList.iterator(); iter.hasNext();) {
-            	
-            	URI fontUrl = getURI(iter.next());
-                
-            	
-                // parse font to ascertain font info
-            	if (pattern.matcher(fontUrl.toString()).matches()){
-            		addPhysicalFont( fontUrl);        		
-            	} else {
-//                	log.debug("Ignoring " + fontUrl.toString() );
 
+            	Object fontFile = iter.next();
+            	try {
+                	URI fontUrl = getURI(fontFile);
+
+
+                    // parse font to ascertain font info
+                	if (pattern.matcher(fontUrl.toString()).matches()){
+                		addPhysicalFont( fontUrl);
+                	} else {
+//                    	log.debug("Ignoring " + fontUrl.toString() );
+
+                	}
+            	} catch (Throwable t) {
+            		logDiscoveryFailure(fontFile, t);
             	}
             }
         }
@@ -228,6 +238,31 @@ public class PhysicalFonts {
                 
 	}
 	
+	/**
+	 * Report a font file which couldn't be processed, so the user can tell which one it was,
+	 * without aborting discovery of the remaining fonts.
+	 *
+	 * Rethrows an error which says the JVM itself is in trouble - an OutOfMemoryError, or a
+	 * LinkageError - since skipping a font is no answer to that.
+	 *
+	 * @since 17.0.2
+	 */
+	private static void logDiscoveryFailure(Object fontFile, Throwable t) {
+
+		if (t instanceof VirtualMachineError) {
+			throw (VirtualMachineError)t;
+		}
+		if (t instanceof LinkageError) {
+			throw (LinkageError)t;
+		}
+
+		log.warn("Ignoring " + fontFile + "; caused " + t.getClass().getName()
+				+ (t.getMessage()==null ? "" : ": " + t.getMessage()) );
+		if (log.isDebugEnabled()) {
+			log.debug(String.valueOf(fontFile) + " caused ", t);
+		}
+	}
+
 	private static URI getURI(Object o) throws Exception {
 		
     	if (o instanceof java.io.File) {
@@ -350,11 +385,9 @@ public class PhysicalFonts {
 		EmbedFontInfo[] embedFontInfoList = fontInfoFinder.find(fontUrl, fontResolver, fontCache);
 		
 		if (embedFontInfoList==null) {
-			if (fontInfoFinder.log.isDebugEnabled()) {
-				log.warn("Aborting: " + fontUrl.toString() );				
-			} else {
-				log.warn("Aborting: " + fontUrl.toString() +  " (to investigate, set org.docx4j.fonts.fop.fonts.autodetect.FontInfoFinder to DEBUG)");
-			}
+			// FontInfoFinder has already logged this font, with the reason, at WARN;
+			// no point repeating it here.
+			log.debug("Aborting: " + fontUrl.toString() );
 			return null;
 		}
 		

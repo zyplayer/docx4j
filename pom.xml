@@ -7,7 +7,7 @@
 	<version>${revision}</version>
 	
 	<properties>
-		<revision>17.0.1-SNAPSHOT</revision>
+		<revision>17.0.2</revision>
 		<packaging.type>jar</packaging.type>
 		
 	    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -16,6 +16,10 @@
 	    <!-- github server corresponds to entry in ~/.m2/settings.xml -->
 	    <github.global.server>github</github.global.server>
 		<version.logback-classic>1.5.19</version.logback-classic>
+		<!-- Eclipse JAXB (aka Reference Implementation).  Managed below, so that the version
+		     org.jvnet.jaxb:jaxb-plugins-runtime pulls in transitively can't diverge from the
+		     version docx4j-JAXB-ReferenceImpl declares. -->
+		<version.jaxb.ri>4.0.9</version.jaxb.ri>
 		<version.maven-jar-plugin>2.3.1</version.maven-jar-plugin>
 		<version.maven-bundle-plugin>5.1.2</version.maven-bundle-plugin>
 		<version.documents4j>1.1.13</version.documents4j>
@@ -105,7 +109,7 @@
   	
 	<scm>
 	    <developerConnection>scm:git|git@github.com:plutext/docx4j.git</developerConnection>
-      <tag>docx4j-17.0.1</tag>
+      <tag>docx4j-17.0.2</tag>
       <url>https://github.com/plutext/docx4j</url>
   </scm>
 	<inceptionYear>2007</inceptionYear>
@@ -148,8 +152,31 @@
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>fontbox</artifactId>
-			<version>3.0.7</version>
-		</dependency>		
+			<version>3.0.8</version>
+		</dependency>
+
+		<!-- docx4j-copy, docx4j-generated-objects and docx4j-core get jaxb-core (and, through it,
+		     txw2) transitively from org.jvnet.jaxb:jaxb-plugins-runtime, which asks for an older
+		     version than docx4j-JAXB-ReferenceImpl declares. Left unmanaged, that is a dependency
+		     convergence error for anyone who depends on one of our selector modules. -->
+		<dependency>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>jaxb-runtime</artifactId>
+			<version>${version.jaxb.ri}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>jaxb-core</artifactId>
+			<version>${version.jaxb.ri}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>txw2</artifactId>
+			<version>${version.jaxb.ri}</version>
+		</dependency>
+
     </dependencies>
         
   </dependencyManagement>
@@ -356,7 +383,12 @@
 			<plugin>
 			    <groupId>org.codehaus.mojo</groupId>
 			    <artifactId>flatten-maven-plugin</artifactId>
-			    <version>1.7.3</version>
+			    <!-- 1.8.0 or later: earlier versions ignored our <exclusions> when hoisting
+			         transitive dependencies (mojohaus/flatten-maven-plugin#408), so our published
+			         poms declared artifacts we deliberately exclude - commons-logging (we use
+			         jcl-over-slf4j), batik-gvt and batik-extension in docx4j-export-fo, and
+			         glassfish jaxb-core, which docx4j-core excludes so that MOXy works. -->
+			    <version>1.8.0</version>
 			    <configuration>
 			        <!--  <updatePomFile>true</updatePomFile>-->
 			        <!-- Keeps all optional POM elements that are required for OSS Repository-Hosting. -->
@@ -365,7 +397,15 @@
 						Flatten both direct and transitive dependencies. This will examine the full dependency tree, 
 						and pull up all transitive dependencies as a direct dependency, and setting their versions appropriately.
 
-						This is recommended if you are releasing a library that uses dependency management to manage dependency versions. -->
+						This is recommended if you are releasing a library that uses dependency management to manage dependency versions.
+
+						Don't switch this to 'direct' without checking what our published poms then contain:
+						'direct' drops the dependencies the parent declares for every module (jakarta.xml.bind-api,
+						slf4j-api), so consumers would no longer get the JAXB API at all. Measured July 2026.
+						Each module would have to declare what it compiles against first.
+
+						Note the cost of 'all', though: since every transitive becomes a direct dependency,
+						a consumer excluding X from one of our artifacts no longer prunes X's subtree. -->
 					<flattenDependencyMode>all</flattenDependencyMode>
 			    </configuration>
 			    <executions>

@@ -1,8 +1,52 @@
 CHANGELOG
 =========
 
+Version 17.0.2
+===============
 
-Version 17.0.1
+Release date
+------------
+
+27 July 2026
+
+Contributors to this release
+----------------------------
+
+Jason Harrop
+
+Claude Opus 5
+
+Changes in Version 17.0.2
+--------------------------
+
+Dependencies:
+- org.glassfish.jaxb (jaxb-runtime, jaxb-core, txw2) versions are now managed in the parent pom, so
+our modules no longer resolve different versions of them, which was a dependency convergence error
+for consumers.
+- flatten-maven-plugin 1.7.3 -> 1.8.0. Earlier versions ignored our exclusions when writing the
+published poms, so those poms declared dependencies we deliberately exclude: commons-logging (we use
+jcl-over-slf4j), and batik-gvt and batik-extension in docx4j-export-fo.
+- MOXy on the module path: docx4j-copy and docx4j-generated-objects now exclude
+org.glassfish.jaxb:jaxb-core, so it no longer reaches you via our published poms. It defeated the
+exclusion docx4j-core has had since 17.0.0, because our poms list transitive dependencies directly.
+com.sun.xml.bind:jaxb-core, which MOXy needs, contains the same packages, so with both present a
+consumer resolving all modules (eg --add-modules ALL-MODULE-PATH, jlink, jpackage) failed at
+startup with "java.lang.module.ResolutionException: Modules com.sun.xml.bind.core and
+org.glassfish.jaxb.core export package org.glassfish.jaxb.core.v2.runtime.unmarshaller". Building
+docx4j from source was never affected. 
+
+With the above, what you resolve from our published poms now matches what we resolve when building.
+
+Fonts:
+- variable fonts (eg Fedora's google-noto-vf NotoSans[wght].ttf) no longer fail to load with an
+AssertionError from GlyphPositioningTable.DeviceTable. The GPOS anchor reader was measuring device
+table offsets from the wrong origin, so it read garbage; only visible when running with -ea.
+See issue 686.
+- one unreadable font file no longer aborts discovery of all remaining fonts; it is logged (with its
+name, as WARN) and skipped.  See issue 686.
+
+
+Version 17.0.1  (use 17.0.2 instead)
 ===============
 
 Release date
@@ -25,16 +69,25 @@ New CONTRIBUTIONS.md policy, covering AI assisted contributions, please read.
 
 New CLAUDE.md file: Claude Code automatically reads this at the start of a session to pick up project-specific context — things like coding conventions, architecture notes, commands to run tests/builds, and other instructions — so you don't have to repeat them every time.
 
-Image conversion:  obsolete property (starting with "org.") removed, use docx4j.openpackaging.parts.WordprocessingML.BinaryPartAbstractImage.ImageMagickExecutable.
-Now defaults to no conversion.  Set the property to your executable if you want to handle these images.
+Deep copy: fixes a 17.0.0 regression in the generated copyTo methods, which left the target's
+content list uninitialised, so deep copying a non-empty math run (CTR) threw a NullPointerException.
+This broke PDF/FO conversion of documents containing equations.  See issue 681.
 
-docx4j-diffx: the bundled com.topologi.diffx fork (Artistic License) is replaced by its actively maintained
+Image conversion:  obsolete property (starting with "org.") removed, use docx4j.openpackaging.parts.WordprocessingML.BinaryPartAbstractImage.ImageMagickExecutable.
+Now defaults to no conversion.  Set the property to your executable if you want to handle these images.  See issue 675.
+
+docx4j-diffx: 
+- the bundled com.topologi.diffx fork (Artistic License) is replaced by its actively maintained
 descendant, org.pageseeder.diffx:pso-diffx 1.3.4 (Apache License v2), used as a Maven dependency.
+- w:ins/w:del dates are now formatted in UTC (previously JVM default timezone, mislabelled with a 'Z' suffix).
 
 HTML output: 
-- base64 encoded images were supported already, but now made neater and improved with new DataUriConversionImageHandler. sue 685.
+- base64 encoded images were supported already, but now made neater and improved with new DataUriConversionImageHandler. Issue 685.
 - new CidConversionImageHandler for HTML destined for email (cid: references + collected images to attach); see ConvertOutHtmlToEmail sample. Issue 685.
 - ListsToContentControls: avoid NPE on invalid negative w:ilvl.  See PR 683.
+
+Dependencies: docx4j no longer uses commons-codec directly (java.util.Base64 instead, issue 685); the jar
+remains as a transitive dependency, since commons-compress's module-info requires it.
 
 Fields: 
 - FieldUpdater (DOCPROPERTY/DOCVARIABLE) now handles a field instruction split across several
@@ -53,6 +106,17 @@ cs (or cstheme) font, as Word does. See issues 666 (Khmer) and 622 (Hindi, Telug
 on the font: with FOP 2.11 the Noto fonts (Noto Sans Khmer, Noto Sans Devanagari, Noto Sans Telugu) shape
 correctly, but not eg the legacy Khmer OS fonts
 
+Conversion output preprocessing (PDF/FO, HTML) no longer mutates the input package:
+ParagraphStylesInTableFix modifies the styles part, the settings part and the document, but these
+weren't listed for PartialDeepCopy, so the changes leaked into the input package and were persisted
+if you saved it afterwards.  See issue 650.
+
+Bumped deps:
+org.apache.pdfbox:fontbox ............................. 3.0.7 -> 3.0.8
+net.arnx:wmf2svg .................................... 0.9.11 -> 0.10.6
+com.sun.xml.bind:jaxb-xjc ............................. 4.0.8 -> 4.0.9 [MOXy]
+org.glassfish.jaxb:jaxb-core .......................... 4.0.8 -> 4.0.9 [Eclipse JAXB (aka Reference Implementation)]
+org.glassfish.jaxb:jaxb-runtime ....................... 4.0.8 -> 4.0.9
 
 Version 17.0.0
 ===============
