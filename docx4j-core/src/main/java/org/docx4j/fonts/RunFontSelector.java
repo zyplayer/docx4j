@@ -888,7 +888,7 @@ public class RunFontSelector {
         	    		log.debug("assuming emoji " + Integer.toHexString(c));
         		    	
         		    	try {
-							if (GlyphCheck.hasChar(hAnsi, c)) {
+							if (hasGlyph(hAnsi, c)) {
 								// TODO: doubt this works for high surrogate 
 								log.debug("present in " + hAnsi);
 								vis.fontAction(hAnsi);        		    		
@@ -1058,7 +1058,7 @@ public class RunFontSelector {
         	    		// so I assume it wouldn't use most other fonts either
         	    		
         	    		// It often uses TNR, so the following is good enough...
-						if (GlyphCheck.hasChar("Times New Roman", c)) {
+						if (hasGlyph("Times New Roman", c)) {
 							vis.fontAction("Times New Roman");        	    		
 						}
 						
@@ -1163,6 +1163,28 @@ public class RunFontSelector {
         	    	currentRangeLower = '\u1E00';
         	    	currentRangeUpper = '\u1EFF';
         	    }
+        	    /* TODO: this range is too broad.
+        	     *
+        	     * Unlike the ranges around it, which simply use hAnsi (or cs), this one asks
+        	     * whether the font has a glyph for the character, and looks for a substitute
+        	     * where it hasn't.  That was worked out for a single character - U+2751, a
+        	     * dingbat checkbox, where Word 2016 falls back to Segoe UI Symbol - and then
+        	     * applied to everything from U+2000 to U+2EFF; see the note further down.
+        	     *
+        	     * But U+2000-U+206F is General Punctuation: the curly quotes, the en and em
+        	     * dashes, the ellipsis, the bullet.  That is ordinary text, which Word just
+        	     * renders in the run's own font, and it has no business going through the
+        	     * symbol-substitution logic: it costs a glyph lookup per character, and where
+        	     * the lookup fails we go hunting for a dingbat font to set a quotation mark in.
+        	     *
+        	     * Probably the check should apply only to the blocks where it is warranted -
+        	     * Miscellaneous Symbols (U+2600-U+26FF) and Dingbats (U+2700-U+27BF), maybe the
+        	     * arrows and geometric shapes - with the rest of the range taking the ordinary
+        	     * hAnsi path.  Not changed because it is a real change to font selection, and
+        	     * wrong guesses here show up as subtly wrong PDFs.
+        	     *
+        	     * @since 17.0.3 - noted, not fixed.
+        	     */
         	    else if (c>='\u2000' && c<='\u2EFF') 
         	    {
         	    	if (hint == STHint.EAST_ASIA) {
@@ -1175,7 +1197,7 @@ public class RunFontSelector {
         	    		} else {
         	    			
         	    			try {
-        						if (GlyphCheck.hasChar(hAnsi, c)) {
+        						if (hasGlyph(hAnsi, c)) {
         							vis.fontAction(hAnsi);        	    		
         						} else {
         							
@@ -1200,7 +1222,21 @@ public class RunFontSelector {
         							if (gothicSubs!=null && GlyphCheck.hasChar(gothicSubs, c)) {
 	        							vis.fontAction(FONT_WORD_2016_USES);        	    		
 	        						} else {
-	                	    			log.warn("TODO: how to handle char '" + c + "' in range c>='\\u2000' && c<='\\u2EFF'?");        							
+	                	    			/* In the discovery pass we are only collecting font names, and
+	                	    			 * nothing can be resolved yet anyway: fontsInUse() runs before
+	                	    			 * processEmbeddings and populateFontMappings (see
+	                	    			 * WordprocessingMLPackage.setFontMapper), so every font looks
+	                	    			 * missing.  The conversion pass makes the real decision.
+	                	    			 * See the TODO in WordprocessingMLPackage.setFontMapper.
+	                	    			 * @since 17.0.3 */
+	                	    			String msg = "TODO: how to handle char '" + c + "' (0x" + Integer.toHexString(c)
+	                	    					+ ") in range c>='\\u2000' && c<='\\u2EFF'? hAnsi=" + hAnsi
+	                	    					+ ", which maps to " + physicalFontFor(hAnsi);
+	                	    			if (outputType==RunFontActionType.DISCOVERY) {
+	                	    				log.debug(msg + " (discovery pass; ignore)");
+	                	    			} else {
+	                	    				log.warn(msg);
+	                	    			}
 	        						}
         						}
         						
@@ -1368,11 +1404,44 @@ public class RunFontSelector {
     	return vis.getResult();
     }
     
+    /** The PhysicalFont this *document* font name maps to.
+     *
+     *  This must go via the Mapper, not PhysicalFonts: a font embedded in the document
+     *  is deliberately not added to PhysicalFonts (those are shared by all documents;
+     *  see ObfuscatedFontPart.extract), and a document font is commonly mapped to a
+     *  substitute with a different name (eg Arial to Arimo Regular), which
+     *  PhysicalFonts.get(documentFontName) wouldn't find either.
+     *
+     * @since 17.0.3
+     */
+    private PhysicalFont physicalFontFor(String documentFontName) {
+
+    	if (documentFontName==null) return null;
+    	Mapper fontMapper = wordMLPackage.getFontMapper();
+    	PhysicalFont pf = (fontMapper==null ? null : fontMapper.get(documentFontName));
+    	return (pf!=null ? pf : PhysicalFonts.get(documentFontName));
+    }
+
+    /** Whether the font this document font name maps to has a glyph for c; false if
+     *  there is no such font, so that the caller falls back as it would have done.
+     *
+     * @since 17.0.3
+     */
+    private boolean hasGlyph(String documentFontName, char c) throws ExecutionException {
+
+    	PhysicalFont pf = physicalFontFor(documentFontName);
+    	if (pf==null) {
+    		log.debug("No physical font for " + documentFontName);
+    		return false;
+    	}
+    	return GlyphCheck.hasChar(pf, c);
+    }
+
     private void debugCheckGlyph(String fontName, char c) {
     	
 		if (log.isDebugEnabled()) {
 	    	try {
-				if (!GlyphCheck.hasChar(fontName, c)) {
+				if (!hasGlyph(fontName, c)) {
 //					Throwable t = new Throwable();
 //					log.debug("FIXME", t);
 					log.debug(fontName + "'s PhysicalFont is missing char " + c);

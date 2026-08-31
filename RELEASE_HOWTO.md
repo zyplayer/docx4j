@@ -112,6 +112,11 @@ New release process (docx4j 11.4.9 and later, which uses nexus-staging-maven-plu
 
 in deploy, prompt for passphrase is the *other* one [e..]
 
+For -ImportXHTML, it is:
+
+           mvn clean install                                        <- builds all modules, runs the tests
+           mvn clean deploy -P release -pl docx4j-ImportXHTML-core  <- publishes -core only
+
 Beware: DO NOT use -rf (resume from) in the event that the build fails.  The artifacts before the failure will not be deployed, resulting in partial publication!
 
 You can/should log in to https://central.sonatype.com/publishing/deployments to examine state.
@@ -227,6 +232,13 @@ Announce release in docx4j forum
 Update news  (includes link to release announcement)
 
 Update the default branch in GitHub (Settings > General > Default Branch > Switch)
+
+When you do, make sure the new default branch carries the repo metadata, since GitHub and the
+DCO app read these from the default branch, not from wherever development is happening:
+
+	.github/dco.yml                    <- config for the DCO app; without it, sign-off is required from everyone, me included
+	.github/PULL_REQUEST_TEMPLATE.md   <- (this one comes from the PR's base branch, so it also needs to be on any branch people target)
+	CONTRIBUTING.md                    <- linked from the repo UI, and shown when opening a PR or issue
 
 ----
 

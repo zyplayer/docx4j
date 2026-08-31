@@ -1,6 +1,38 @@
 CHANGELOG
 =========
 
+Version 17.0.3
+===============
+
+Release date
+------------
+
+18 August 2026
+
+Contributors to this release
+----------------------------
+
+Jason Harrop
+
+Claude Opus 5
+
+Changes in Version 17.0.3
+--------------------------
+
+PDF/HTML output:
+- a PAGE, NUMPAGES or SECTIONPAGES field is now rendered in the font which applies to it. 
+- digit-based non-Latin page number formats are now honoured: w:pgNumType w:fmt of thaiNumbers,
+hindiNumbers, decimalFullWidth(2) and decimalZero now yield the corresponding digits (previously
+all fell back to Latin "1, 2, 3")
+
+Font selection improvements
+
+Font memory management improvements
+- loaded Typefaces are no longer retained for the life of the JVM.  They are now held only in
+GlyphCheck's cache (weak keys, soft values), not also on PhysicalFont
+- our copy of FOP's MultiByteFont no longer loads glyph bounding boxes at all. 
+
+
 Version 17.0.2
 ===============
 
