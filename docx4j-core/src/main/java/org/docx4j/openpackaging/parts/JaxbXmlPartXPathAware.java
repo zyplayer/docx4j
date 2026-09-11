@@ -628,7 +628,13 @@ implements XPathEnabled<E> {
 //						((Unmarshaller) binder).setListener(docx4jUnmarshallerListener);
 						
 						jaxbElement =  (E) XmlUtils.unwrap(binder.unmarshal( doc ));
-					} catch (ClassCastException cce) {
+					} catch (ClassCastException | NumberFormatException | JAXBException binderException) {
+						/*
+						 * JAXB RI's Binder can still reject invalid lexical values even when the
+						 * validation event handler is configured to continue.  Retry with the
+						 * regular Unmarshaller for Binder-specific failures; invalid schema values
+						 * still need to be repaired by the preprocessing stylesheet.
+						 */
 						/* 
 						 * Work around for issue with JAXB binder, in Java 1.6 
 						 * encountered with /src/test/resources/jaxb-binder-issue.docx 
@@ -651,7 +657,7 @@ implements XPathEnabled<E> {
 							at org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart.unmarshal(MainDocumentPart.java:321)
 						 */
 	
-						log.warn("Binder not available for this docx");
+						log.warn("Binder not available for this docx; falling back to a lenient unmarshaller", binderException);
 						unwrapUsually(getConfiguredUnmarshaller(true).unmarshal( doc ));		
 						
 					}
@@ -765,8 +771,8 @@ implements XPathEnabled<E> {
 					XmlUtils.transform(doc, mcPreprocessorXslt, null, result);
 					doc = (org.w3c.dom.Document) result.getNode();
 					jaxbElement = (E) XmlUtils.unwrap(binder.unmarshal(doc));
-				} catch (ClassCastException cce) {
-					log.warn("Binder not available for this docx");
+				} catch (ClassCastException | NumberFormatException | JAXBException binderException) {
+					log.warn("Binder not available for this docx; falling back to a lenient unmarshaller", binderException);
 					jaxbElement = (E) XmlUtils.unwrap(getConfiguredUnmarshaller(true).unmarshal( doc ));		
 				} catch (Exception e) {
 					throw new JAXBException("Preprocessing exception", e);

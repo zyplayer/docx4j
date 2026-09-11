@@ -415,6 +415,51 @@
            <xsl:attribute name="w:val"><xsl:value-of select="format-number(., '#')" /></xsl:attribute>
   </xsl:template>
 
+  <!--
+      Some non-Microsoft producers write opaque strings to w:bookmarkStart/@w:id,
+      even though ST_DecimalNumber requires an integer.  If the document contains
+      such an id, renumber all bookmark ids by document order so start/end pairs
+      remain consistent and cannot collide with an existing numeric id.  w:name is
+      intentionally left unchanged since hyperlinks address bookmarks by name.
+  -->
+  <xsl:template match="w:bookmarkStart/@w:id">
+    <xsl:attribute name="w:id">
+      <xsl:choose>
+        <xsl:when test="//w:bookmarkStart[number(@w:id) != number(@w:id)]">
+          <xsl:value-of select="count(../preceding::w:bookmarkStart)" />
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="." />
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:attribute>
+  </xsl:template>
+
+  <xsl:template match="w:bookmarkEnd/@w:id">
+    <xsl:variable name="bookmarkId" select="." />
+    <xsl:variable name="bookmarkStart" select="../preceding::w:bookmarkStart[@w:id = $bookmarkId][1]" />
+    <xsl:attribute name="w:id">
+      <xsl:choose>
+        <xsl:when test="//w:bookmarkStart[number(@w:id) != number(@w:id)] and $bookmarkStart">
+          <xsl:value-of select="count($bookmarkStart/preceding::w:bookmarkStart)" />
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="." />
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:attribute>
+  </xsl:template>
+
+  <!-- ST_TwipsMeasure is integral, but DingTalk exports fractional values here. -->
+  <xsl:template match="w:pgMar/@w:top | w:pgMar/@w:right | w:pgMar/@w:bottom | w:pgMar/@w:left | w:pgMar/@w:header | w:pgMar/@w:footer | w:pgMar/@w:gutter">
+    <xsl:attribute name="w:{local-name()}">
+      <xsl:choose>
+        <xsl:when test="contains(., '.')"><xsl:value-of select="format-number(., '#')" /></xsl:when>
+        <xsl:otherwise><xsl:value-of select="." /></xsl:otherwise>
+      </xsl:choose>
+    </xsl:attribute>
+  </xsl:template>
+
 
 	<!-- 
         <w:pBdr>
