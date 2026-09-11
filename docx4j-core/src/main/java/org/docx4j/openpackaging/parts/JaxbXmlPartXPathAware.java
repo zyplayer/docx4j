@@ -1,19 +1,19 @@
 /**
  *  Copyright 2012, Plutext Pty Ltd.
- *   
+ *
  *  This file is part of docx4j.
 
-    docx4j is licensed under the Apache License, Version 2.0 (the "License"); 
-    you may not use this file except in compliance with the License. 
+    docx4j is licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
 
-    You may obtain a copy of the License at 
+    You may obtain a copy of the License at
 
-        http://www.apache.org/licenses/LICENSE-2.0 
+        http://www.apache.org/licenses/LICENSE-2.0
 
-    Unless required by applicable law or agreed to in writing, software 
-    distributed under the License is distributed on an "AS IS" BASIS, 
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-    See the License for the specific language governing permissions and 
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
     limitations under the License.
 
  */
@@ -68,9 +68,9 @@ import org.w3c.dom.Node;
  * @author jharrop
  * @since 2.8
  */
-public abstract class JaxbXmlPartXPathAware<E> extends JaxbXmlPart<E> 
+public abstract class JaxbXmlPartXPathAware<E> extends JaxbXmlPart<E>
 implements XPathEnabled<E> {
-	
+
 	protected static Logger log = LoggerFactory.getLogger(JaxbXmlPartXPathAware.class);
 
 	public JaxbXmlPartXPathAware(PartName partName)
@@ -78,51 +78,51 @@ implements XPathEnabled<E> {
 		super(partName);
 		// TODO Auto-generated constructor stub
 	}
-	
+
 	protected Binder<Node> binder;
-	
+
 	/**
-	 * Enables synchronization between XML infoset nodes and JAXB objects 
+	 * Enables synchronization between XML infoset nodes and JAXB objects
 	 * representing same XML document.
-	 * 
+	 *
 	 * An instance of this class maintains the association between XML nodes
-	 * of an infoset preserving view and a JAXB representation of an XML document. 
-	 * Navigation between the two views is provided by the methods 
+	 * of an infoset preserving view and a JAXB representation of an XML document.
+	 * Navigation between the two views is provided by the methods
 	 * getXMLNode(Object) and getJAXBNode(Object) .
-	 * 
-	 * In theory, modifications can be made to either the infoset preserving view or 
+	 *
+	 * In theory, modifications can be made to either the infoset preserving view or
 	 * the JAXB representation of the document while the other view remains
 	 * unmodified. The binder ought to be able to synchronize the changes made in
 	 * the modified view back into the other view using the appropriate
 	 * Binder update methods, #updateXML(Object, Object) or #updateJAXB(Object).
-	 * 
+	 *
 	 * But JAXB doesn't currently work as advertised .. access to this
 	 * object is offered for advanced users on an experimental basis only.
 	 */
 	public Binder<Node> getBinder() {
-		
+
 		if (jaxbElement == null) {
 			// Test jaxbElement, since we don't want to do the
 			// below if jaxbElement has already been set
-			// using setJaxbElement (which doesn't create 
+			// using setJaxbElement (which doesn't create
 			// binder)
 			PartStore partStore = this.getPackage().getSourcePartStore();
-			
+
 			InputStream is = null;
 			try {
 				String name = this.getPartName().getName();
-				
+
 				try {
 					this.setContentLengthAsLoaded(
 							partStore.getPartSize( name.substring(1)));
 				} catch (UnsupportedOperationException uoe) {}
-				
+
 				if (MAX_BYTES_Unmarshal_Error>-1
 						&& this.getContentLengthAsLoaded()>MAX_BYTES_Unmarshal_Error) {
 					throw new PartTooLargeException(this.getPartName() + ", length " + this.getContentLengthAsLoaded() + " exceeds your configured maximum allowed size for unmarshal.");
 				}
-				
-				is = partStore.loadPart( 
+
+				is = partStore.loadPart(
 						name.substring(1));
 				if (is==null) {
 					log.warn(name + " missing from part store");
@@ -136,9 +136,9 @@ implements XPathEnabled<E> {
 				log.error(e.getMessage(), e);
 			} finally {
 				IOUtils.closeQuietly(is);
-			}		
+			}
 		} else if (binder==null) {
-			// User might have set jaxb element, without creating a binder	
+			// User might have set jaxb element, without creating a binder
 			try {
 				log.debug("creating binder for " + this.getJaxbElement().getClass().getName());
 				org.w3c.dom.Document doc =  XmlUtils.neww3cDomDocument();
@@ -146,19 +146,19 @@ implements XPathEnabled<E> {
 				unmarshal( doc.getDocumentElement() );
 			} catch (JAXBException e) {
 				log.error(e.getMessage(), e);
-			} 
+			}
 		}
-		
+
 		return binder;
 	}
 
 	/** You can't use this override to create/update a binder, since this would set the
-	 * jaxbElement field to something different to the object being passed in 
+	 * jaxbElement field to something different to the object being passed in
 	 * (as a consequence of the process to create a binder).
-	 * 
+	 *
 	 * We don't want that, because calling code may then continue to manipulate
 	 * the field, without effect..
-	 * 
+	 *
 	 * See instead createBinderAndJaxbElement
 	 */
 	@Override
@@ -166,8 +166,8 @@ implements XPathEnabled<E> {
 		super.setJaxbElement(jaxbElement);
 		binder=null; // any existing binder is invalid
 	}
-	
-	
+
+
 	/**
 	 * Set the JAXBElement for this part, and a corresponding
 	 * binder, based on the object provided.  Returns the new
@@ -179,7 +179,7 @@ implements XPathEnabled<E> {
 	 * @since 3.0.0
 	 */
 	public E createBinderAndJaxbElement(E source) throws JAXBException {
-		
+
 		// In order to create binder:-
 		log.debug("creating binder");
 		org.w3c.dom.Document doc = XmlUtils.marshaltoW3CDomDocument(source);
@@ -188,17 +188,17 @@ implements XPathEnabled<E> {
 		// of their source object
 		return jaxbElement;
 	}
-	
+
 	/**
 	 * Fetch JAXB Nodes matching an XPath (for example "//w:p").
-	 * 
-	 * If you have modified your JAXB objects (eg added or changed a 
+	 *
+	 * If you have modified your JAXB objects (eg added or changed a
 	 * w:p paragraph), you need to update the association. The problem
 	 * is that this can only be done ONCE, owing to a bug in JAXB:
 	 * see https://github.com/javaee/jaxb-v2/issues/459
-	 * 
-	 * So this is left for you to choose to do via the refreshXmlFirst parameter.   
-	 * 
+	 *
+	 * So this is left for you to choose to do via the refreshXmlFirst parameter.
+	 *
 	 * <p>In {@link org.docx4j.jaxb.McLoadMode#PRESERVE} mode a block-, row- or cell-level
 	 * {@code mc:AlternateContent} stands whole in the part, so {@code //w:p} returns every
 	 * branch's paragraphs and {@code w:body/w:p} none inside a branch (CR-051 section 10.3,
@@ -207,61 +207,61 @@ implements XPathEnabled<E> {
 	 * paragraph-level element's, or a block-level one's in {@code preserve} mode) is bound in the
 	 * tree by its container's kind (CR-051 section 11.3) but has no DOM association, so an XPath
 	 * for {@code w:sdt} does not return it.</p>
-	 * 
+	 *
 	 * @param xpathExpr
 	 * @param refreshXmlFirst
 	 * @return
 	 * @throws JAXBException
-	 * @throws XPathBinderAssociationIsPartialException 
-	 */	
-	public List<Object> getJAXBNodesViaXPath(String xpathExpr, boolean refreshXmlFirst) 
+	 * @throws XPathBinderAssociationIsPartialException
+	 */
+	public List<Object> getJAXBNodesViaXPath(String xpathExpr, boolean refreshXmlFirst)
 			throws JAXBException, XPathBinderAssociationIsPartialException {
-		
+
 		Binder<Node> binder = getBinder();
 		E el = getJaxbElement();
 		return XmlUtils.getJAXBNodesViaXPath(binder, el, xpathExpr, refreshXmlFirst);
-	}	
+	}
 
 	/**
 	 * Fetch JAXB Nodes matching an XPath (for example ".//w:p" - note the dot,
 	 * which is necessary for this sort of relative path).
-	 * 
-	 * If you have modified your JAXB objects (eg added or changed a 
+	 *
+	 * If you have modified your JAXB objects (eg added or changed a
 	 * w:p paragraph), you need to update the association. The problem
 	 * is that this can only be done ONCE, owing to a bug in JAXB:
 	 * see https://github.com/javaee/jaxb-v2/issues/459
-	 * 
-	 * So this is left for you to choose to do via the refreshXmlFirst parameter.   
+	 *
+	 * So this is left for you to choose to do via the refreshXmlFirst parameter.
 
 	 * @param xpathExpr
 	 * @param someJaxbElement
 	 * @param refreshXmlFirst
 	 * @return
 	 * @throws JAXBException
-	 * @throws XPathBinderAssociationIsPartialException 
+	 * @throws XPathBinderAssociationIsPartialException
 	 */
-	public List<Object> getJAXBNodesViaXPath(String xpathExpr, Object someJaxbElement, boolean refreshXmlFirst) 
+	public List<Object> getJAXBNodesViaXPath(String xpathExpr, Object someJaxbElement, boolean refreshXmlFirst)
 		throws JAXBException, XPathBinderAssociationIsPartialException {
 
 		return XmlUtils.getJAXBNodesViaXPath(getBinder(), someJaxbElement, xpathExpr, refreshXmlFirst);
-	}	
+	}
 
 	/**
 	 * Fetch DOM node / JAXB object pairs matching an XPath (for example "//w:p").
-	 * 
-	 * In JAXB, this association is partial; not all XML elements have associated JAXB objects, 
-	 * and not all JAXB objects have associated XML elements.  
-	 * 
+	 *
+	 * In JAXB, this association is partial; not all XML elements have associated JAXB objects,
+	 * and not all JAXB objects have associated XML elements.
+	 *
 	 * If the XPath returns an element which isn't associated
 	 * with a JAXB object, the element's pair will be null.
-	 * 
-	 * If you have modified your JAXB objects (eg added or changed a 
+	 *
+	 * If you have modified your JAXB objects (eg added or changed a
 	 * w:p paragraph), you need to update the association. The problem
 	 * is that this can only be done ONCE, owing to a bug in JAXB:
 	 * see https://github.com/javaee/jaxb-v2/issues/459
-	 * 
-	 * So this is left for you to choose to do via the refreshXmlFirst parameter.   
-	 * 
+	 *
+	 * So this is left for you to choose to do via the refreshXmlFirst parameter.
+	 *
 	 * @param binder
 	 * @param jaxbElement
 	 * @param xpathExpr
@@ -272,32 +272,32 @@ implements XPathEnabled<E> {
 	 * @since 3.0.0
 	 */
 	public List<JAXBAssociation> getJAXBAssociationsForXPath(
-			String xpathExpr, boolean refreshXmlFirst) 
+			String xpathExpr, boolean refreshXmlFirst)
 			throws JAXBException, XPathBinderAssociationIsPartialException {
 
-		
+
 		Binder<Node> binder = getBinder(); // do this first!
 		return XmlUtils.getJAXBAssociationsForXPath(binder, getJaxbElement(), xpathExpr, refreshXmlFirst);
-		
-	}	
-	
+
+	}
+
 	/**
 	 * Fetch DOM node / JAXB object pairs matching an XPath (for example ".//w:p" - note the dot,
 	 * which is necessary for this sort of relative path).
-	 * 
-	 * In JAXB, this association is partial; not all XML elements have associated JAXB objects, 
-	 * and not all JAXB objects have associated XML elements.  
-	 * 
+	 *
+	 * In JAXB, this association is partial; not all XML elements have associated JAXB objects,
+	 * and not all JAXB objects have associated XML elements.
+	 *
 	 * If the XPath returns an element which isn't associated
 	 * with a JAXB object, the element's pair will be null.
-	 * 
-	 * If you have modified your JAXB objects (eg added or changed a 
+	 *
+	 * If you have modified your JAXB objects (eg added or changed a
 	 * w:p paragraph), you need to update the association. The problem
 	 * is that this can only be done ONCE, owing to a bug in JAXB:
 	 * see https://jaxb.dev.java.net/issues/show_bug.cgi?id=459
-	 * 
-	 * So this is left for you to choose to do via the refreshXmlFirst parameter.   
-	 * 
+	 *
+	 * So this is left for you to choose to do via the refreshXmlFirst parameter.
+	 *
 	 * @param binder
 	 * @param jaxbElement
 	 * @param xpathExpr
@@ -308,63 +308,63 @@ implements XPathEnabled<E> {
 	 * @since 3.0.0
 	 */
 	public List<JAXBAssociation> getJAXBAssociationsForXPath(
-			Object someJaxbElement, String xpathExpr, boolean refreshXmlFirst) 
+			Object someJaxbElement, String xpathExpr, boolean refreshXmlFirst)
 			throws JAXBException, XPathBinderAssociationIsPartialException {
 
 		return XmlUtils.getJAXBAssociationsForXPath(getBinder(), someJaxbElement, xpathExpr, refreshXmlFirst);
-		
-	}	
-	
+
+	}
+
 	private void unwrapUsually(Binder<Node> binder, Node doc) throws JAXBException {
 		McBranchSdt.rename(doc); // a w:sdt directly in an mc branch, bound by its container afterwards (CR-051 section 11.3)
-		
+
 		jaxbElement =  (E) XmlUtils.unwrap(binder.unmarshal( doc ));
 		// Unwrap, so we have eg CTEndnotes, not JAXBElement
-	
-		// .. but we do need to leave it wrapped, 
-		// if there is not @XmlRootElement annotation 
+
+		// .. but we do need to leave it wrapped,
+		// if there is not @XmlRootElement annotation
 		if (jaxbElement instanceof org.docx4j.dml.chartDrawing.CTDrawing) {
 			// Check it
 			Object tmp = binder.unmarshal( doc );
 			if (tmp instanceof jakarta.xml.bind.JAXBElement) {
 				QName qname = ((jakarta.xml.bind.JAXBElement)tmp).getName();
 				if (qname.equals( org.docx4j.dml.chart.ObjectFactory._UserShapes_QNAME)) {
-					jaxbElement=(E)tmp;	
+					jaxbElement=(E)tmp;
 				}
 			}
 		}
-				
+
 	}
 
 	private void unwrapUsually(Object tmp) throws JAXBException {
-	
-		// ..  we do need to leave it wrapped, 
-		// if there is no @XmlRootElement annotation 
+
+		// ..  we do need to leave it wrapped,
+		// if there is no @XmlRootElement annotation
 		if (tmp instanceof jakarta.xml.bind.JAXBElement) {
 			QName qname = ((jakarta.xml.bind.JAXBElement)tmp).getName();
 			if (qname.equals( org.docx4j.dml.chart.ObjectFactory._UserShapes_QNAME)) {
-				jaxbElement=(E)tmp;	
+				jaxbElement=(E)tmp;
 				return;
 			}
 		}
-		
+
 		jaxbElement =  (E) XmlUtils.unwrap(tmp);
 		// Unwrap, so we have eg CTEndnotes, not JAXBElement
-				
+
 	}
-	
+
     /**
-     * Unmarshal XML data from the specified InputStream and return the 
+     * Unmarshal XML data from the specified InputStream and return the
      * resulting content tree.  Validation event location information may
      * be incomplete when using this form of the unmarshal API.
      *
      * <p>
      * Implements <a href="#unmarshalGlobal">Unmarshal Global Root Element</a>.
-     * 
-     * @param is the InputStream to unmarshal XML data from
-     * @return the newly created root object of the java content tree 
      *
-     * @throws JAXBException 
+     * @param is the InputStream to unmarshal XML data from
+     * @return the newly created root object of the java content tree
+     *
+     * @throws JAXBException
      *     If any unexpected errors occur while unmarshalling
      */
 	@Override
@@ -372,52 +372,52 @@ implements XPathEnabled<E> {
 
 		return unmarshal(is, false);
 	}
-	
+
 	protected boolean isWasStrict() {
-		
+
 		if (this.getPackage() == null) {
-			// backwards compatibility for certain tests 
+			// backwards compatibility for certain tests
 			return false;
 		} else {
 			return this.getPackage().isWasStrict();
 		}
 	}
-	
+
 	/**
 	 * Unmarshalling via DOM document can be 4x slower than unmarshalling
 	 * the inputstream using XMLStreamReader, so we avoid doing that where possible.
-	 * 
+	 *
 	 * @param is
 	 * @param forceBinder
 	 * @return
 	 * @throws JAXBException
 	 */
 	private E unmarshal( java.io.InputStream is, boolean forceBinder ) throws JAXBException {
-		
+
 //		long start = System.currentTimeMillis();
 		String transformParts = Docx4jProperties.getProperty("docx4j.jaxb.preprocess.always");
 		boolean transformFirst = isWasStrict() ||
-				(transformParts!=null 
+				(transformParts!=null
 				&& transformParts.contains(this.getClass().getSimpleName()));
 		if (log.isDebugEnabled()) {
 			log.debug("transformFirst=" + transformFirst);
 		}
-		
+
 		try {
 			JaxbValidationEventHandler eventHandler = new JaxbValidationEventHandler();
 			org.w3c.dom.Document doc = null;
-			
+
 			try {
-				
+
 				boolean wantBinder = forceBinder;
-				
+
 				if (!forceBinder) {
 					if (this instanceof MainDocumentPart) {
 						wantBinder = Docx4jProperties.getProperty(
 								"docx4j.openpackaging.parts.JaxbXmlPartXPathAware.binder.eager.MainDocumentPart", false);
 					} else {
 						wantBinder = Docx4jProperties.getProperty(
-								"docx4j.openpackaging.parts.JaxbXmlPartXPathAware.binder.eager.OtherParts", false);					
+								"docx4j.openpackaging.parts.JaxbXmlPartXPathAware.binder.eager.OtherParts", false);
 					}
 				}
 
@@ -427,26 +427,26 @@ implements XPathEnabled<E> {
 			        if (transformFirst) {
 			        	log.info("Preprocessing (transforming) this part");
 						doc = transformToDom(inputStreamToXSR(is));
-					
-			        } else /* no need for this if we've transformed already */ 
+
+			        } else /* no need for this if we've transformed already */
 			        	if (Context.jaxbImplementation==JAXBImplementation.ECLIPSELINK_MOXy) {
 						log.debug("MOXy: checking whether binder workaround is necessary");
-						/* Workaround for MOXy issue 
+						/* Workaround for MOXy issue
 
 							I can set a ValidationEventHandler on an Unmarshaller, which triggers on an unexpected element ValidationEvent, then catch an UnmarshalException to handle that. That all works as expected :-)
-							
+
 							If instead I set a ValidationEventHandler on a Binder then call unmarshal, an unexpected element ValidationEvent never triggers.
-							
+
 							I tested MOXy 2.5.2 and 2.6.3.
-							
+
 							Looking at the MOXy source code on GitHub, at a high level it looks like it ought to work.
-							
+
 							JAXBBinder lets you setEventHandler on XMLBinder, and that in turn invokes setErrorHandler on the unmarshallers.
 						 */
-						String contents = IOUtils.toString(is, "UTF-8");  
+						String contents = IOUtils.toString(is, "UTF-8");
 						IOUtils.closeQuietly(is);
 						try (InputStream is2 = new ByteArrayInputStream(contents.getBytes("UTF-8"))) {
-						
+
 							if (contents.contains("AlternateContent")) {
 								// looks like we need to do the workaround
 								// 3.4.0: this needs to be refined, since we can now handle
@@ -456,27 +456,27 @@ implements XPathEnabled<E> {
 								// could do super.unmarshal(is);
 								// but better
 								doc = transformToDom(inputStreamToXSR(is2));
-								
+
 							} else {
 								// continue with a new is
 								log.debug("MOXy: no, looks ok");
 								is = is2;
 							}
-						
+
 						}
 					}
-				
+
 					// InputStream to Document
-					if (doc==null) // we didn't apply the transform above 
-					{						
+					if (doc==null) // we didn't apply the transform above
+					{
 						doc = XmlUtils.getNewDocumentBuilder().parse(is); // this also guards against XXE
 					}
-	
-					// 
+
+					//
 					binder = jc.createBinder();
-					
+
 					log.debug("info: " + binder.getClass().getName());
-					
+
 //					eventHandler.setContinue(false);
 					binder.setEventHandler(eventHandler);
 
@@ -489,31 +489,31 @@ implements XPathEnabled<E> {
 						log.error("Unmarshalling via binder, couldn't set Docx4jUnmarshallerListener. McChoiceNamespace declarations will be affected.");
 						log.error("Couldn't set Docx4jUnmarshallerListener on binder", e1);
 					}
-					
+
 					unwrapUsually(binder,  doc);  // unlikely to need this in the code below
 					afterBinderUnmarshal(docx4jUnmarshallerListener); // CR-051 section 3.2
-					
+
 				} else {
-					
+
 					if (log.isDebugEnabled()) {
 						log.debug("For " + this.getClass().getName() + ", unmarshall (no binder)");
 					}
-				    
+
 			        if (transformFirst) {
 			        	log.info("Preprocessing (transforming) this part");
-						preprocess(is, true);  // try to continue, since we've transformed 
+						preprocess(is, true);  // try to continue, since we've transformed
 						return jaxbElement;
 			        }
-			        
+
 					log.debug("Unmarshalling " + this.partName.getName());
 					XMLStreamReader xsr = inputStreamToXSR(is);
 					Unmarshaller u = getConfiguredUnmarshaller(false, xsr);
 					unwrapUsually(u.unmarshal( xsr ));
 					resolveAlternateContent(u.getListener()); // CR-051 section 3.2
-					
+
 				}
 			} catch (org.xml.sax.SAXParseException e) {
-				
+
 				/*
 					org.xml.sax.SAXParseException; lineNumber: 2; columnNumber: 10; DOCTYPE is disallowed when the feature "http://apache.org/xml/features/disallow-doctype-decl" set to true.
 						at com.sun.org.apache.xerces.internal.parsers.DOMParser.parse(Unknown Source)
@@ -522,30 +522,30 @@ implements XPathEnabled<E> {
 					 */
 				log.error(e.getMessage(), e);
 				throw e;
-					
+
 			} catch (Exception ue) {
 
 				if (transformFirst) {
-					
-					log.error("problem in " + this.getPartName() ); 					
+
+					log.error("problem in " + this.getPartName() );
 					log.error(ue.getMessage(), ue);
 					log.error(".. and transformed up-front already; giving up");
 					throw ue;
-					
+
 				}
-				
-				
+
+
 				if (ue instanceof UnmarshalException) {
 					// Usually..
-					
+
 					if (((UnmarshalException)ue).getLinkedException()!=null) {
 
-						log.warn(((UnmarshalException)ue).getLinkedException().getMessage());	
+						log.warn(((UnmarshalException)ue).getLinkedException().getMessage());
 
 						if (((UnmarshalException)ue).getLinkedException().getMessage().contains("http://purl.oclc.org/")) {
 							log.debug("http://purl.oclc.org/ namespace, which will need to be transformed.");
 						} else if (((UnmarshalException)ue).getLinkedException().getMessage().contains("entity")) {
-						
+
 							/*
 								Caused by: javax.xml.stream.XMLStreamException: ParseError at [row,col]:[10,19]
 								Message: The entity "xxe" was referenced, but not declared.
@@ -558,7 +558,7 @@ implements XPathEnabled<E> {
 
 						if (((UnmarshalException)ue).getLinkedException().getMessage().contains("EmptyPrefixedAttName?prefix=\"xmlns")) {
 							// eg xmlns:ns0=""
-							
+
 							/*
 								Caused by: org.xml.sax.SAXParseException; lineNumber: 2; columnNumber: 600; The value of the attribute "prefix="xmlns",localpart="ns0",rawname="xmlns:ns0"" is invalid. Prefixed namespace bindings may not be empty.
 									at com.sun.org.apache.xerces.internal.parsers.DOMParser.parse(DOMParser.java:257)
@@ -568,21 +568,21 @@ implements XPathEnabled<E> {
 							log.error(ue.getMessage(), ue);
 							if (is.markSupported() ) {
 								is.reset();
-								
+
 								// read it to string
 								String theString = IOUtils.toString(is, "UTF-8");
-								
+
 								// remove xmlns:ns0=""
 								String fixed = theString.replace("xmlns:ns0=\"\"", "");
 								if (theString.equals(fixed)) {
 									// no change
-									throw ue;									
+									throw ue;
 								} else {
 									is = new ByteArrayInputStream(fixed.getBytes("UTF-8"));
 									return this.unmarshal(is, forceBinder);
 								}
 							} else {
-								throw ue;								
+								throw ue;
 							}
 						}
 					}
@@ -590,14 +590,14 @@ implements XPathEnabled<E> {
 					// eg java.lang.NumberFormatException
 					log.warn( ue.getMessage(), ue);
 				}
-				
+
 				if (is.markSupported() ) {
-					
+
 					try {
 						is.reset();
 					} catch (IOException ioe) {
 						log.error(ioe.getLocalizedMessage());
-						log.warn("problem in " + this.getPartName() ); 					
+						log.warn("problem in " + this.getPartName() );
 						log.warn(ue.getMessage(), ue);
 						log.warn(".. and mark not supported");
 						log.warn(ioe.getLocalizedMessage());
@@ -605,40 +605,40 @@ implements XPathEnabled<E> {
 					}
 					// when reading from zip, we use a ByteArrayInputStream, which does support mark.
 					log.info("encountered unexpected content in " + this.getPartName() + "; pre-processing");
-									
+
 					/* Always try our preprocessor, since if what is first encountered is w14:whatever
 					 * the error would be:
-					 *  
+					 *
 					 *    unexpected element (uri:"http://schemas.microsoft.com/office/word/2010/wordml", local:"whatever")
 					 *
-					 * but there could well be mc:AlternateContent somewhere 
+					 * but there could well be mc:AlternateContent somewhere
 					 * further down in the document.
 					 */
-					
+
 					// If we get here, we always use DOM source and binder
 					doc = XmlUtils.getNewDocumentBuilder().parse(is); // this also guards against XXE
-						
+
 					// There is no JAXBResult(binder),
-					// so use a 
+					// so use a
 					DOMResult result = new DOMResult();
-					
+
 					Templates mcPreprocessorXslt = JaxbValidationEventHandler.getMcPreprocessor();
 					XmlUtils.transform(doc, mcPreprocessorXslt, null, result);
-					
+
 					doc = (org.w3c.dom.Document)result.getNode();
-					
+
 					if (log.isDebugEnabled()) {
 						XmlUtils.w3CDomNodeToOutputStream(doc, System.out);
 					}
-					
+
 					try {
-						// mimic docx4j 2.7.0 and earlier behaviour; this will 
-						// drop things we don't have a content model for; the preprocessor doesn't need to 
-						// do that				
+						// mimic docx4j 2.7.0 and earlier behaviour; this will
+						// drop things we don't have a content model for; the preprocessor doesn't need to
+						// do that
 						eventHandler.setContinue(true);
 						binder = jc.createBinder();
 						binder.setEventHandler(eventHandler);
-						
+
 						// the listener, as on the other binder paths (CR-051 section 1: until 17.3.4 it was
 						// left out here, so a part StAX rejected lost its Choice prefixes and drawing ids)
 						// https://github.com/eclipse-ee4j/jaxb-ri/issues/1631
@@ -649,17 +649,17 @@ implements XPathEnabled<E> {
 							log.error("Unmarshalling via binder, couldn't set Docx4jUnmarshallerListener. McChoiceNamespace declarations will be affected.");
 							log.error("Couldn't set Docx4jUnmarshallerListener on binder", e1);
 						}
-						
+
 						McBranchSdt.rename(doc); // CR-051 section 11.3
 						jaxbElement =  (E) XmlUtils.unwrap(binder.unmarshal( doc ));
 						afterBinderUnmarshal(docx4jUnmarshallerListener); // CR-051 section 3.2
-					} catch (ClassCastException cce) {
-						/* 
-						 * Work around for issue with JAXB binder, in Java 1.6 
-						 * encountered with /src/test/resources/jaxb-binder-issue.docx 
+					} catch (ClassCastException | NumberFormatException | JAXBException binderException) {
+						/*
+						 * Work around for issue with JAXB binder, in Java 1.6
+						 * encountered with /src/test/resources/jaxb-binder-issue.docx
 						 * See http://old.nabble.com/BinderImpl.associativeUnmarshal-ClassCastException-casting-to-JAXBElement-td32456585.html
 						 * and  http://java.net/jira/browse/JAXB-874
-						 * 
+						 *
 						 * java.lang.ClassCastException: org.docx4j.wml.PPr cannot be cast to jakarta.xml.bind.JAXBElement
 							at com.sun.xml.internal.bind.v2.runtime.ElementBeanInfoImpl$IntercepterLoader.intercept(Unknown Source)
 							at com.sun.xml.internal.bind.v2.runtime.unmarshaller.UnmarshallingContext.endElement(Unknown Source)
@@ -675,31 +675,31 @@ implements XPathEnabled<E> {
 							at com.sun.xml.internal.bind.v2.runtime.BinderImpl.unmarshal(Unknown Source)
 							at org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart.unmarshal(MainDocumentPart.java:321)
 						 */
-	
+
 						log.warn("Binder not available for this docx");
 						Unmarshaller u = getConfiguredUnmarshaller(true);
-						unwrapUsually(u.unmarshal( doc ));		
+						unwrapUsually(u.unmarshal( doc ));
 						resolveAlternateContent(u.getListener()); // CR-051 section 3.2
-						
+
 					}
 				} else {
-					log.warn("problem in " + this.getPartName() ); 					
+					log.warn("problem in " + this.getPartName() );
 					log.warn(ue.getMessage(), ue);
 					log.warn(".. and mark not supported");
 					throw ue;
 				}
 			}
-			
+
 //			long finish = System.currentTimeMillis();
 //			long diff = finish - start;
 //			System.out.println("Time taken " + diff + " for " + this.getPartName().getName() );
-			
+
 			return jaxbElement;
-			
+
 		} catch (Exception e ) {
-			
+
 			// The XmlUtils.getNewDocumentBuilder().parse(is) case
-			
+
 			/* java.lang.NullPointerException
 				at com.sun.org.apache.xerces.internal.impl.dtd.XMLDTDProcessor.startDTD(Unknown Source)
 				at com.sun.org.apache.xerces.internal.impl.XMLDTDScannerImpl.scanDTDInternalSubset(Unknown Source)
@@ -714,19 +714,19 @@ implements XPathEnabled<E> {
 					throw new JAXBException("DTD is prohibited", e);
 				}
 			}
-			
+
 			throw new JAXBException(e.getMessage(), e);
 		}
     }
 
     /**
      * @since 2.7.1
-     */		
+     */
 	@Override
     public E unmarshal(org.w3c.dom.Element el) throws JAXBException {
 
 		try {
-			log.debug("For " + this.getClass().getName() + ", unmarshall via binder");				
+			log.debug("For " + this.getClass().getName() + ", unmarshall via binder");
 
 			if (Context.jaxbImplementation==JAXBImplementation.ECLIPSELINK_MOXy) {
 				log.debug("MOXy: pre-emptively transforming");
@@ -735,7 +735,7 @@ implements XPathEnabled<E> {
 				try {
 					Templates mcPreprocessorXslt = JaxbValidationEventHandler.getMcPreprocessor();
 					DOMResult result = new DOMResult();
-					XmlUtils.transform(new DOMSource(el), 
+					XmlUtils.transform(new DOMSource(el),
 							mcPreprocessorXslt, null, result);
 					org.w3c.dom.Document doc = (org.w3c.dom.Document) result.getNode();
 					el = doc.getDocumentElement();
@@ -743,13 +743,13 @@ implements XPathEnabled<E> {
 					throw new JAXBException("Preprocessing exception", e);
 				}
 			}
-			
+
 			binder = jc.createBinder();
 
 			JaxbValidationEventHandler eventHandler = new JaxbValidationEventHandler();
 			eventHandler.setContinue(false);
 			binder.setEventHandler(eventHandler);
-			
+
 			// binder api doesn't support set listener, so workaround using reflection
 			// https://github.com/eclipse-ee4j/jaxb-ri/issues/1631
 			Unmarshaller.Listener docx4jUnmarshallerListener = new Docx4jUnmarshallerListener(this);
@@ -759,20 +759,20 @@ implements XPathEnabled<E> {
 				log.error("Unmarshalling via binder, couldn't set Docx4jUnmarshallerListener. McChoiceNamespace declarations will be affected.");
 				log.error("Couldn't set Docx4jUnmarshallerListener on binder", e1);
 			}
-			
-						
+
+
 			try {
 //				jaxbElement =  (E) XmlUtils.unwrap(binder.unmarshal( el ));
 				unwrapUsually(binder,  el);  // unlikely to need this in the code below
 				afterBinderUnmarshal(docx4jUnmarshallerListener); // CR-051 section 3.2
-				
+
 			} catch (Exception ue) {
 				if (ue instanceof UnmarshalException) {
 					// Usually..
 				} else {
 					// eg java.lang.NumberFormatException
 					log.warn( ue.getMessage(), ue);
-					log.info(".. can recover if problem is w:tblW/@w:w");					
+					log.info(".. can recover if problem is w:tblW/@w:w");
 				}
 				log.info("encountered unexpected content; pre-processing");
 				org.w3c.dom.Document doc = null;
@@ -802,17 +802,17 @@ implements XPathEnabled<E> {
 					McBranchSdt.rename(doc); // CR-051 section 11.3
 					jaxbElement = (E) XmlUtils.unwrap(binder.unmarshal(doc));
 					afterBinderUnmarshal(retryListener); // CR-051 section 3.2
-				} catch (ClassCastException cce) {
+				} catch (ClassCastException | NumberFormatException | JAXBException binderException) {
 					log.warn("Binder not available for this docx");
 					Unmarshaller u = getConfiguredUnmarshaller(true);
-					jaxbElement = (E) XmlUtils.unwrap(u.unmarshal( doc ));		
+					jaxbElement = (E) XmlUtils.unwrap(u.unmarshal( doc ));
 					resolveAlternateContent(u.getListener()); // CR-051 section 3.2
 				} catch (Exception e) {
 					throw new JAXBException("Preprocessing exception", e);
 				}
 			}
 			return jaxbElement;
-			
+
 		} catch (JAXBException e) {
 			throw e;
 		}
@@ -882,13 +882,13 @@ implements XPathEnabled<E> {
 		}
 	}
 
-	
+
 //	private String toString(ByteBuffer bb) throws UnsupportedEncodingException {
 //
 //		byte[] bytes = null;
 //        bytes = new byte[bb.limit()];
-//        bb.get(bytes);	        				
+//        bb.get(bytes);
 //		return new String(bytes, "UTF-8");
 //	}
-	
+
 }
